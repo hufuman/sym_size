@@ -10,13 +10,23 @@
 #include "Util.h"
 #include "WndLayout.h"
 #include "PEParser.h"
+#include "SortListCtrl.h"
 
+
+class CMainDlg;
+struct stSortInfo
+{
+    BOOL bShowFunc;
+    BOOL bAsc;
+    int  nSortIndex;
+    CMainDlg* pDlg;
+};
+extern stSortInfo g_SortInfo;
 
 class CMainDlg : public CDialogImpl<CMainDlg>, public CMessageFilter
 {
 public:
 	enum { IDD = IDD_DIALOG_MAIN };
-
 
 	CMainDlg()
 	{
@@ -44,7 +54,9 @@ public:
         COMMAND_ID_HANDLER(IDC_RADIO_UDT, OnFilter)
         COMMAND_ID_HANDLER(IDC_BTN_FILTER, OnFilter)
 
-	END_MSG_MAP()
+        NOTIFY_HANDLER(0, HDN_ITEMCLICK, OnListHeaderClicked)
+
+    END_MSG_MAP()
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 	{
@@ -84,7 +96,8 @@ public:
         // 
         Util::EnableDrop(m_hWnd);
 
-        m_List.Attach(GetDlgItem(IDC_LIST_SYMBOLE));
+        m_List.SubclassWindow(GetDlgItem(IDC_LIST_SYMBOLE));
+
         m_Progress.Attach(GetDlgItem(IDC_PROGRESS_PARSING));
         m_LabelProgress.Attach(GetDlgItem(IDC_LABEL_PROGRESS));
         m_RadioFunc.Attach(GetDlgItem(IDC_RADIO_FUNCTION));
@@ -98,7 +111,7 @@ public:
 
         SetDlgItemText(IDC_EDIT_FILTER, _T("*"));
 
-        ShowResultUI(FALSE);
+        ShowResultUI(TRUE);
 
         InitLayout();
 
@@ -315,7 +328,30 @@ public:
             }
         }
 
+        SortListItems();
+    }
+
+    void SortListItems()
+    {
+        BOOL bAsc = TRUE;
+        int nSortIndex = -1;
+        m_List.GetSortParam(bAsc, nSortIndex);
+
+        g_SortInfo.bShowFunc = (m_RadioFunc.GetCheck() == BST_CHECKED);
+        g_SortInfo.bAsc = bAsc;
+        g_SortInfo.nSortIndex = nSortIndex;
+        g_SortInfo.pDlg = this;
+
+        qsort(m_ItemIndex.GetData(), m_ItemIndex.GetSize(), sizeof(DWORD), &CMainDlg::SortHlpFunc);
+
         m_List.SetItemCount(m_ItemIndex.GetSize());
+    }
+
+    LRESULT OnListHeaderClicked(int nId, LPNMHDR pNMHDr, BOOL& bHandled)
+    {
+        SortListItems();
+        bHandled = TRUE;
+        return 0;
     }
 
     LRESULT OnLvnGetDispInfo(int nId, LPNMHDR pNMHDr, BOOL& bHandled)
@@ -348,12 +384,63 @@ public:
                 pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(udt.strSize));
             }
         }
+        pInfo->item.mask |= LVIF_PARAM;
+        pInfo->item.lParam = m_ItemIndex[pInfo->item.iItem];
 
         return 0;
     }
 
+    static int SortHlpFunc(const void *arg1, const void *arg2)
+    {
+        int nResult = 0;
+
+        DWORD dwIndex1 = *reinterpret_cast<DWORD*>(reinterpret_cast<DWORD>(arg1));
+        DWORD dwIndex2 = *reinterpret_cast<DWORD*>(reinterpret_cast<DWORD>(arg2));
+
+        if(g_SortInfo.bShowFunc)
+        {
+            const FuncInfoList& list = g_SortInfo.pDlg->m_PEParser.GetFuncInfo();
+            const CFunctionInfo& func1 = list.GetAt(dwIndex1);
+            const CFunctionInfo& func2 = list.GetAt(dwIndex2);
+            if(g_SortInfo.nSortIndex == 1)
+            {
+                if(func1.uLength < func2.uLength)
+                    nResult = -1;
+                else if(func1.uLength == func2.uLength)
+                    nResult = 0;
+                else
+                    nResult = 1;
+            }
+            else
+            {
+                nResult = _tcsicmp(func1.bstrName, func2.bstrName);
+            }
+        }
+        else
+        {
+            const UDTInfoList& list = g_SortInfo.pDlg->m_PEParser.GetUDTInfo();
+            const CUDTInfo& udt1 = list.GetAt(dwIndex1);
+            const CUDTInfo& udt2 = list.GetAt(dwIndex2);
+            if(g_SortInfo.nSortIndex == 1)
+            {
+                if(udt1.uLength < udt2.uLength)
+                    nResult = -1;
+                else if(udt1.uLength == udt2.uLength)
+                    nResult = 0;
+                else
+                    nResult = 1;
+            }
+            else
+            {
+                nResult = _tcsicmp(udt1.bstrName, udt2.bstrName);
+            }
+        }
+        if(!g_SortInfo.bAsc)
+            nResult = -nResult;
+        return nResult;
+    }
+
 private:
-    CListViewCtrl   m_List;
     CWndLayout      m_WndLayout;
     CPEParser       m_PEParser;
 
@@ -362,6 +449,8 @@ private:
 
     CButton         m_RadioFunc;
     CButton         m_RadioUDT;
+
+    CSortListCtrl   m_List;
 
     ATL::CSimpleArray<DWORD> m_ItemIndex;
 };

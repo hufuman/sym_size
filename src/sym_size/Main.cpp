@@ -10,7 +10,7 @@
 
 
 CAppModule _Module;
-
+stSortInfo g_SortInfo;
 
 int Run(LPTSTR /*lpCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 {

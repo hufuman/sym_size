@@ -2,7 +2,7 @@
 
 
 #include "LinkStatic.h"
-
+#include "resource.h"
 
 
 class CAboutDlg : public CDialogImpl<CAboutDlg>

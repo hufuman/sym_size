@@ -13,6 +13,7 @@
 #define IDS_ERR_NO_FILE_DROPPED         133
 #define IDS_ERR_UNKNOWN                 134
 #define IDS_ERR_PARSE                   135
+#define IDB_BMP_ARROW                     141
 #define IDC_LABEL_STEP1                 1008
 #define IDC_LABEL_STEP2                 1009
 #define IDC_LABEL_AUTHOR                1011
@@ -33,7 +34,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        141
+#define _APS_NEXT_RESOURCE_VALUE        142
 #define _APS_NEXT_COMMAND_VALUE         32772
 #define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           110
