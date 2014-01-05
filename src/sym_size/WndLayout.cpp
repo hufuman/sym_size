@@ -132,7 +132,7 @@ void CWndLayout::AdjustControl(HDWP hDWP, RECT rcParent, const stWndInfo& info)
     }
     else if(info.dwLayout & Layout_HCenter)
     {
-        rcControl.left = (rcParent.right - rcParent.left - info.rcMargin.right - info.rcMargin.left - nWidth) / 2;
+        rcControl.left = (rcParent.right - rcParent.left - nWidth) / 2;
         rcControl.right = rcControl.left + nWidth;
     }
     else if(info.dwLayout & Layout_HFill)

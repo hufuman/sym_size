@@ -9,6 +9,7 @@
 #include "AboutDlg.h"
 #include "Util.h"
 #include "WndLayout.h"
+#include "PEParser.h"
 
 
 class CMainDlg : public CDialogImpl<CMainDlg>, public CMessageFilter
@@ -33,6 +34,15 @@ public:
 
 		MESSAGE_HANDLER(WM_SYSCOMMAND, OnSysCommand)
         MESSAGE_HANDLER(WM_DROPFILES, OnDropFiles)
+
+        MESSAGE_HANDLER(g_NotifyPEParserProgress, OnNotifyPEParserProgress)
+        MESSAGE_HANDLER(g_NotifyPEParserFinish, OnNotifyPEParserFinish)
+
+        NOTIFY_HANDLER(IDC_LIST_SYMBOLE, LVN_GETDISPINFO, OnLvnGetDispInfo)
+
+        COMMAND_ID_HANDLER(IDC_RADIO_FUNCTION, OnFilter)
+        COMMAND_ID_HANDLER(IDC_RADIO_UDT, OnFilter)
+        COMMAND_ID_HANDLER(IDC_BTN_FILTER, OnFilter)
 
 	END_MSG_MAP()
 
@@ -74,7 +84,21 @@ public:
         // 
         Util::EnableDrop(m_hWnd);
 
-        m_Tree.Attach(GetDlgItem(IDC_TREE_SYMSIZE));
+        m_List.Attach(GetDlgItem(IDC_LIST_SYMBOLE));
+        m_Progress.Attach(GetDlgItem(IDC_PROGRESS_PARSING));
+        m_LabelProgress.Attach(GetDlgItem(IDC_LABEL_PROGRESS));
+        m_RadioFunc.Attach(GetDlgItem(IDC_RADIO_FUNCTION));
+        m_RadioUDT.Attach(GetDlgItem(IDC_RADIO_UDT));
+
+        m_List.InsertColumn(0, _T("Name"), LVCFMT_LEFT, 120);
+        m_List.InsertColumn(1, _T("Size"), LVCFMT_LEFT, 360);
+        m_List.SetExtendedListViewStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
+
+        m_Progress.SetRange(0, 100);
+
+        SetDlgItemText(IDC_EDIT_FILTER, _T("*"));
+
+        ShowResultUI(FALSE);
 
         InitLayout();
 
@@ -86,6 +110,12 @@ public:
 		CloseDialog(wID);
 		return 0;
 	}
+
+    LRESULT OnFilter(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+    {
+        FilterResult();
+        return 0;
+    }
 
 	void CloseDialog(int nVal)
 	{
@@ -114,21 +144,44 @@ public:
         HDROP hDrop = reinterpret_cast<HDROP>(wParam);
 
         TCHAR szPath[MAX_PATH * 2] = {0};
-        UINT uCount = ::DragQueryFile(hDrop, 0xFFFFFFFF, szPath, _countof(szPath));
-        if(uCount == 0)
-        {
-            CString strMsg;
-            strMsg.LoadString(IDS_NO_FILE_DROPPED);
-            MessageBox(strMsg);
-            return 0;
-        }
 
-        BOOL bResult = TRUE;
-        for(UINT i=0; i<uCount; ++ i)
+        ShowResultUI(FALSE);
+
+        for(;;)
         {
-            if(::DragQueryFile(hDrop, i, szPath, _countof(szPath)) > 0)
+            UINT uCount = ::DragQueryFile(hDrop, 0xFFFFFFFF, szPath, _countof(szPath));
+            if(uCount == 0)
             {
+                MsgBox(IDS_ERR_NO_FILE_DROPPED);
+                break;
             }
+            else if(uCount > 1)
+            {
+                MsgBox(IDS_ERR_MORE_THAN_ONE_FILE);
+                break;
+            }
+
+            if(::DragQueryFile(hDrop, 0, szPath, _countof(szPath)) == 0)
+            {
+                MsgBox(IDS_ERR_UNKNOWN);
+                break;
+            }
+
+            DWORD dwAttr = ::GetFileAttributes(szPath);
+            if(dwAttr == INVALID_FILE_ATTRIBUTES
+                || ((dwAttr & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY)
+                || !::PathMatchSpec(szPath, _T("*.pdb")))
+            {
+                MsgBox(IDS_ERR_UNKNOWN);
+                break;
+            }
+
+            SetDlgItemText(IDC_LABEL_FILE_PATH, szPath);
+            SetDlgItemText(IDC_EDIT_FILTER, _T("*"));
+
+            ParsePDB(szPath);
+
+            break;
         }
 
         ::DragFinish(hDrop);
@@ -141,12 +194,174 @@ public:
         m_WndLayout.Init(m_hWnd);
         m_WndLayout.AddControlById(IDC_LABEL_STEP1, Layout_Top | Layout_Left);
         m_WndLayout.AddControlById(IDC_LABEL_STEP2, Layout_Top | Layout_Left);
-        m_WndLayout.AddControlById(IDC_TREE_SYMSIZE, Layout_VFill | Layout_HFill);
+        m_WndLayout.AddControlById(IDC_LIST_SYMBOLE, Layout_VFill | Layout_HFill);
         m_WndLayout.AddControlById(IDC_LABEL_FILE_PATH, Layout_Top | Layout_HFill);
         m_WndLayout.AddControlById(IDC_EDIT_FILTER, Layout_Top | Layout_HFill);
+        m_WndLayout.AddControlById(IDC_BTN_FILTER, Layout_Top | Layout_Right);
+
+        m_WndLayout.AddControlById(IDC_LABEL_PROGRESS, Layout_Top | Layout_HCenter);
+        m_WndLayout.AddControlById(IDC_PROGRESS_PARSING, Layout_Top | Layout_HCenter);
+
+        m_WndLayout.AddControlById(IDC_RADIO_FUNCTION, Layout_Top | Layout_Left);
+        m_WndLayout.AddControlById(IDC_RADIO_UDT, Layout_Top | Layout_Left);
+    }
+
+    int MsgBox(UINT nResId)
+    {
+        CString strMsg;
+        strMsg.LoadString(nResId);
+        return ::MessageBox(m_hWnd, strMsg, _T("sym_size"), MB_OK | MB_ICONERROR);
+    }
+
+    void ParsePDB(LPCTSTR szPDBPath)
+    {
+        m_List.ShowWindow(SW_HIDE);
+
+        m_Progress.SetPos(0);
+        m_LabelProgress.SetWindowText(_T("Progress: 0%"));
+
+        m_Progress.ShowWindow(SW_SHOW);
+        m_LabelProgress.ShowWindow(SW_SHOW);
+
+        m_PEParser.Load(m_hWnd, szPDBPath);
+    }
+
+    LRESULT OnNotifyPEParserProgress(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
+    {
+        bHandled = TRUE;
+
+        m_Progress.SetPos(wParam);
+
+        CString strText;
+        strText.Format(_T("Progress: %d%%"), wParam);
+        m_LabelProgress.SetWindowText(strText);
+
+        return 0;
+    }
+
+    LRESULT OnNotifyPEParserFinish(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
+    {
+        bHandled = TRUE;
+
+        if(SUCCEEDED(wParam))
+        {
+            m_Progress.SetPos(100);
+            m_LabelProgress.SetWindowText(_T("Progress: 100%"));
+
+            ShowResult();
+        }
+        else
+        {
+            MsgBox(IDS_ERR_PARSE);
+        }
+
+        return 0;
+    }
+
+    void ShowResultUI(BOOL bShowResult)
+    {
+        m_List.ShowWindow(bShowResult ? SW_SHOW : SW_HIDE);
+        m_RadioFunc.ShowWindow(bShowResult ? SW_SHOW : SW_HIDE);
+        m_RadioUDT.ShowWindow(bShowResult ? SW_SHOW : SW_HIDE);
+
+        m_Progress.ShowWindow(bShowResult ? SW_HIDE : SW_SHOW);
+        m_LabelProgress.ShowWindow(bShowResult ? SW_HIDE : SW_SHOW);
+
+    }
+
+    void ShowResult()
+    {
+        ShowResultUI(TRUE);
+
+        m_RadioFunc.SetCheck(BST_CHECKED);
+
+        FilterResult();
+    }
+
+    void FilterResult()
+    {
+        m_ItemIndex.RemoveAll();
+
+        TCHAR szFilter[MAX_PATH * 2] = {0};
+        GetDlgItemText(IDC_EDIT_FILTER, szFilter, MAX_PATH * 2);
+        szFilter[MAX_PATH * 2 - 1] = 0;
+
+        CString strFilter;
+        strFilter.Format(_T("*%s*"), szFilter);
+        if(m_RadioFunc.GetCheck() == BST_CHECKED)
+        {
+            const FuncInfoList& list = m_PEParser.GetFuncInfo();
+            DWORD dwLength = list.GetLength();
+            for(DWORD i=0; i<dwLength; ++ i)
+            {
+                const CFunctionInfo& func = list.GetAt(i);
+                if(::PathMatchSpec(func.bstrName, strFilter))
+                {
+                    m_ItemIndex.Add(i);
+                }
+            }
+        }
+        else if(m_RadioUDT.GetCheck() == BST_CHECKED)
+        {
+            const UDTInfoList& list = m_PEParser.GetUDTInfo();
+            DWORD dwLength = list.GetLength();
+            for(DWORD i=0; i<dwLength; ++ i)
+            {
+                const CUDTInfo& udt = list.GetAt(i);
+                if(::PathMatchSpec(udt.bstrName, strFilter))
+                {
+                    m_ItemIndex.Add(i);
+                }
+            }
+        }
+
+        m_List.SetItemCount(m_ItemIndex.GetSize());
+    }
+
+    LRESULT OnLvnGetDispInfo(int nId, LPNMHDR pNMHDr, BOOL& bHandled)
+    {
+        NMLVDISPINFO* pInfo = reinterpret_cast<NMLVDISPINFO*>(pNMHDr);
+
+        if(m_RadioFunc.GetCheck() == BST_CHECKED)
+        {
+            const FuncInfoList& list = m_PEParser.GetFuncInfo();
+            const CFunctionInfo& func = list.GetAt(m_ItemIndex[pInfo->item.iItem]);
+            if(pInfo->item.iSubItem == 0)
+            {
+                pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(func.bstrName));
+            }
+            else
+            {
+                pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(func.strSize));
+            }
+        }
+        else if(m_RadioUDT.GetCheck() == BST_CHECKED)
+        {
+            const UDTInfoList& list = m_PEParser.GetUDTInfo();
+            const CUDTInfo& udt = list.GetAt(m_ItemIndex[pInfo->item.iItem]);
+            if(pInfo->item.iSubItem == 0)
+            {
+                pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(udt.bstrName));
+            }
+            else
+            {
+                pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(udt.strSize));
+            }
+        }
+
+        return 0;
     }
 
 private:
-    CTreeViewCtrl   m_Tree;
+    CListViewCtrl   m_List;
     CWndLayout      m_WndLayout;
+    CPEParser       m_PEParser;
+
+    CProgressBarCtrl m_Progress;
+    CStatic         m_LabelProgress;
+
+    CButton         m_RadioFunc;
+    CButton         m_RadioUDT;
+
+    ATL::CSimpleArray<DWORD> m_ItemIndex;
 };

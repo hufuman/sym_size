@@ -41,6 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="D:\VS9\DIA SDK\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -114,6 +115,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="D:\VS9\DIA SDK\include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
@@ -175,6 +177,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\PEParser.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.cpp"
 				>
 				<FileConfiguration
@@ -221,11 +227,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\PEParser.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Resource.h"
 				>
 			</File>
 			<File
 				RelativePath=".\stdafx.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SymDef.h"
 				>
 			</File>
 			<File
@@ -238,6 +252,10 @@
 			</File>
 			<File
 				RelativePath=".\WndLayout.h"
+				>
+			</File>
+			<File
+				RelativePath=".\XItemList.h"
 				>
 			</File>
 		</Filter>
