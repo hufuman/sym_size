@@ -13,7 +13,9 @@
 #define IDS_ERR_NO_FILE_DROPPED         133
 #define IDS_ERR_UNKNOWN                 134
 #define IDS_ERR_PARSE                   135
-#define IDB_BMP_ARROW                     141
+#define IDB_BMP_ARROW                   141
+#define IDR_MENU1                       142
+#define IDR_MENU_ITEM                   142
 #define IDC_LABEL_STEP1                 1008
 #define IDC_LABEL_STEP2                 1009
 #define IDC_LABEL_AUTHOR                1011
@@ -25,17 +27,18 @@
 #define IDC_RADIO_FUNCTION              1017
 #define IDC_RADIO_UDT                   1018
 #define IDC_BTN_FILTER                  1019
-#ifndef IDC_STATIC
+#define ID_ITEMCONTEXTMENU_COUNTSIZE    32772
+#define ID_ITEMCONTEXTMENU_COPYNAME     32773
+#define ID_ITEMCONTEXTMENU_COPYLINE     32774
 #define IDC_STATIC                      -1
-#endif
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        142
-#define _APS_NEXT_COMMAND_VALUE         32772
+#define _APS_NEXT_RESOURCE_VALUE        143
+#define _APS_NEXT_COMMAND_VALUE         32775
 #define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

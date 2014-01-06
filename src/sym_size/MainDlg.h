@@ -54,7 +54,13 @@ public:
         COMMAND_ID_HANDLER(IDC_RADIO_UDT, OnFilter)
         COMMAND_ID_HANDLER(IDC_BTN_FILTER, OnFilter)
 
+        NOTIFY_HANDLER(IDC_LIST_SYMBOLE, NM_RCLICK, OnItemRightClicked)
+
         NOTIFY_HANDLER(0, HDN_ITEMCLICK, OnListHeaderClicked)
+
+        COMMAND_ID_HANDLER(ID_ITEMCONTEXTMENU_COUNTSIZE, OnItemCountSize)
+        COMMAND_ID_HANDLER(ID_ITEMCONTEXTMENU_COPYNAME, OnItemCopyName)
+        COMMAND_ID_HANDLER(ID_ITEMCONTEXTMENU_COPYLINE, OnItemCopyLine)
 
     END_MSG_MAP()
 
@@ -127,6 +133,118 @@ public:
     LRESULT OnFilter(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
     {
         FilterResult();
+        return 0;
+    }
+
+    LRESULT OnItemCountSize(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& bHandled)
+    {
+        bHandled = TRUE;
+
+        BOOL bShowFunc = (m_RadioFunc.GetCheck() == BST_CHECKED);
+
+        const UDTInfoList& udtList = m_PEParser.GetUDTInfo();
+        const FuncInfoList& funcList = m_PEParser.GetFuncInfo();
+
+        LVITEMINDEX index = {-1, 0};
+        ULONGLONG uTotalSize = 0;
+        while(m_List.GetNextItemIndex(&index, LVNI_ALL | LVNI_SELECTED))
+        {
+            if(bShowFunc)
+            {
+                const CFunctionInfo& func = funcList.GetAt(m_ItemIndex[index.iItem]);
+                uTotalSize += func.uLength;
+            }
+            else
+            {
+                const CUDTInfo& udt = udtList.GetAt(m_ItemIndex[index.iItem]);
+                uTotalSize += udt.uLength;
+            }
+        }
+
+        CString strMsg;
+        strMsg.Format(_T("TotalSize: %I64u"), uTotalSize);
+        MessageBox(strMsg);
+
+        return 0;
+    }
+
+    LRESULT OnItemCopyLine(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& bHandled)
+    {
+        bHandled = TRUE;
+
+        BOOL bShowFunc = (m_RadioFunc.GetCheck() == BST_CHECKED);
+
+        const UDTInfoList& udtList = m_PEParser.GetUDTInfo();
+        const FuncInfoList& funcList = m_PEParser.GetFuncInfo();
+
+        CString strMsg, strTemp;
+        LVITEMINDEX index = {-1, 0};
+        while(m_List.GetNextItemIndex(&index, LVNI_ALL | LVNI_SELECTED))
+        {
+            if(bShowFunc)
+            {
+                const CFunctionInfo& func = funcList.GetAt(m_ItemIndex[index.iItem]);
+                strTemp.Format(_T("%I64u"), func.uLength);
+                strMsg += func.bstrName;
+                strMsg += _T(", ");
+                strMsg += strTemp;
+                strMsg += _T("\r\n");
+            }
+            else
+            {
+                const CUDTInfo& udt = udtList.GetAt(m_ItemIndex[index.iItem]);
+                strTemp.Format(_T("%I64u"), udt.uLength);
+                strMsg += udt.bstrName;
+                strMsg += _T(", ");
+                strMsg += strTemp;
+                strMsg += _T("\r\n");
+            }
+        }
+
+        if(!strMsg.IsEmpty())
+            strMsg = strMsg.Mid(0, strMsg.GetLength() - 2);
+
+        Util::SaveStringToClipboard(m_hWnd, strMsg);
+
+        MessageBox(_T("Lines has been copied to clipboard."));
+
+        return 0;
+    }
+
+    LRESULT OnItemCopyName(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& bHandled)
+    {
+        bHandled = TRUE;
+
+        BOOL bShowFunc = (m_RadioFunc.GetCheck() == BST_CHECKED);
+
+        const UDTInfoList& udtList = m_PEParser.GetUDTInfo();
+        const FuncInfoList& funcList = m_PEParser.GetFuncInfo();
+
+        CString strMsg;
+        LVITEMINDEX index = {-1, 0};
+        while(m_List.GetNextItemIndex(&index, LVNI_ALL | LVNI_SELECTED))
+        {
+            if(bShowFunc)
+            {
+                const CFunctionInfo& func = funcList.GetAt(m_ItemIndex[index.iItem]);
+                strMsg += func.bstrName;
+                strMsg += _T(", ");
+            }
+            else
+            {
+                const CUDTInfo& udt = udtList.GetAt(m_ItemIndex[index.iItem]);
+                strMsg += udt.bstrName;
+                strMsg += _T(", ");
+            }
+        }
+
+        if(!strMsg.IsEmpty())
+            strMsg = strMsg.Mid(0, strMsg.GetLength() - 2);
+
+        Util::SaveStringToClipboard(m_hWnd, strMsg);
+
+        MessageBox(_T("Names has been copied to clipboard."));
+
         return 0;
     }
 
@@ -345,6 +463,19 @@ public:
         qsort(m_ItemIndex.GetData(), m_ItemIndex.GetSize(), sizeof(DWORD), &CMainDlg::SortHlpFunc);
 
         m_List.SetItemCount(m_ItemIndex.GetSize());
+    }
+
+    LRESULT OnItemRightClicked(int nId, LPNMHDR pNMHDr, BOOL& bHandled)
+    {
+        HMENU hMenu = ::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MENU_ITEM));
+        HMENU hSubMenu = ::GetSubMenu(hMenu, 0);
+
+        POINT Pt;
+        ::GetCursorPos(&Pt);
+        ::TrackPopupMenu(hSubMenu, TPM_LEFTBUTTON | TPM_RIGHTBUTTON, Pt.x, Pt.y, 0, m_hWnd, NULL);
+
+        bHandled = TRUE;
+        return 0;
     }
 
     LRESULT OnListHeaderClicked(int nId, LPNMHDR pNMHDr, BOOL& bHandled)

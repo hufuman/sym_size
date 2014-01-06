@@ -60,4 +60,28 @@ namespace Util
         strResult = strData.Mid(begin + nPrefixLen, end - begin - nPrefixLen);
         return strResult;
     }
+
+    BOOL SaveStringToClipboard(HWND hWnd, LPCTSTR szData)
+    {
+        if(!::OpenClipboard(hWnd))
+            return FALSE;
+
+        ::EmptyClipboard();
+
+        DWORD dwLength = (_tcslen(szData) + 1) * sizeof(TCHAR);
+        HANDLE hData = ::GlobalAlloc(GMEM_MOVEABLE, dwLength);
+        if(hData == NULL)
+        {
+            ::CloseClipboard();
+            return FALSE;
+        }
+
+        LPVOID pCopy = ::GlobalLock(hData); 
+        memcpy(pCopy, szData, dwLength);
+        ::GlobalUnlock(hData);
+
+        ::SetClipboardData(CF_UNICODETEXT, hData);
+        ::CloseClipboard();
+        return TRUE;
+    }
 };

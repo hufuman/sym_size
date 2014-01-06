@@ -73,7 +73,23 @@ END
 // Bitmap
 //
 
-IDB_BMP_ARROW             BITMAP                  "arrow.bmp"
+IDB_BMP_ARROW           BITMAP                  "arrow.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU_ITEM MENU 
+BEGIN
+    POPUP "ItemContextMenu"
+    BEGIN
+        MENUITEM "Count &Size",                 ID_ITEMCONTEXTMENU_COUNTSIZE
+        MENUITEM "Copy &Name",                  ID_ITEMCONTEXTMENU_COPYNAME
+        MENUITEM "Copy &Line(s)",               ID_ITEMCONTEXTMENU_COPYLINE
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
