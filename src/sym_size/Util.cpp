@@ -30,37 +30,6 @@ namespace Util
         FilterWindowMessage(WM_DROPFILES, 1);
     }
 
-    CStringA GetToken(const CStringA& strData, LPCSTR szPrefix, LPCSTR szPostfix)
-    {
-        int nStart = 0;
-        return GetToken(strData, szPrefix, szPostfix, nStart);
-    }
-
-    CStringA GetToken(const CStringA& strData, LPCSTR szPrefix, LPCSTR szPostfix, int& nStart)
-    {
-        CStringA strResult;
-        if(nStart < 0)
-        {
-            AtlThrow(E_INVALIDARG);
-            return strResult;
-        }
-
-        size_t nPrefixLen = strlen(szPrefix);
-        size_t nPostfixLen = strlen(szPostfix);
-
-        int begin = strData.Find(szPrefix, nStart);
-        if(begin == -1)
-            return strResult;
-
-        nStart = begin + nPrefixLen;
-        int end = strData.Find(szPostfix, nStart);
-        if(end == -1)
-            return strResult;
-
-        strResult = strData.Mid(begin + nPrefixLen, end - begin - nPrefixLen);
-        return strResult;
-    }
-
     BOOL SaveStringToClipboard(HWND hWnd, LPCTSTR szData)
     {
         if(!::OpenClipboard(hWnd))

@@ -41,10 +41,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="D:\VS9\DIA SDK\include"
+				AdditionalIncludeDirectories=""
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
+				SmallerTypeCheck="true"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
@@ -63,6 +64,7 @@
 				Name="VCLinkerTool"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
+				GenerateMapFile="true"
 				SubSystem="2"
 				TargetMachine="1"
 			/>
@@ -115,7 +117,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="D:\VS9\DIA SDK\include"
+				AdditionalIncludeDirectories=""
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
@@ -136,6 +138,7 @@
 				Name="VCLinkerTool"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
+				GenerateMapFile="true"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
@@ -177,10 +180,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\PEParser.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\stdafx.cpp"
 				>
 				<FileConfiguration
@@ -204,10 +203,6 @@
 				RelativePath=".\Util.cpp"
 				>
 			</File>
-			<File
-				RelativePath=".\WndLayout.cpp"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -219,27 +214,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\LinkStatic.h"
-				>
-			</File>
-			<File
 				RelativePath=".\MainDlg.h"
 				>
 			</File>
 			<File
-				RelativePath=".\PEParser.h"
-				>
-			</File>
-			<File
 				RelativePath=".\Resource.h"
-				>
-			</File>
-			<File
-				RelativePath=".\SortHeader.h"
-				>
-			</File>
-			<File
-				RelativePath=".\SortListCtrl.h"
 				>
 			</File>
 			<File
@@ -258,14 +237,6 @@
 				RelativePath=".\Util.h"
 				>
 			</File>
-			<File
-				RelativePath=".\WndLayout.h"
-				>
-			</File>
-			<File
-				RelativePath=".\XItemList.h"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
@@ -282,6 +253,50 @@
 			</File>
 			<File
 				RelativePath=".\sym_size.rc"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="controls"
+			>
+			<File
+				RelativePath=".\LinkStatic.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SortHeader.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SortListCtrl.h"
+				>
+			</File>
+			<File
+				RelativePath=".\WndLayout.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\WndLayout.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="parser"
+			>
+			<File
+				RelativePath=".\MapFile.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\MapFile.h"
+				>
+			</File>
+			<File
+				RelativePath=".\PEParser.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\PEParser.h"
 				>
 			</File>
 		</Filter>

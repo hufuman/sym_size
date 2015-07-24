@@ -1,26 +1,15 @@
 #pragma once
 
 
-
-#include "XItemList.h"
-
-class CUDTInfo
+struct stFuncData
 {
-public:
-    BSTR        bstrName;
-    ULONGLONG   uLength;
-
-    CString     strSize;
+    int     nSectionNo;
+    int     pFuncAddr;
+    CString strFuncName;
+    int     nFuncSize;
+    CString strModuleName;
+    CString strObjName;
+    CString strFuncSize;
 };
-typedef XItemList<CUDTInfo> UDTInfoList;
 
-class CFunctionInfo
-{
-public:
-    BSTR        bstrName;
-    ULONGLONG   uLength;
-
-    CString     strSize;
-};
-typedef XItemList<CFunctionInfo> FuncInfoList;
-
+typedef CSimpleArray<stFuncData> FuncInfoList;

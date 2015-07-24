@@ -7,9 +7,14 @@
 
 #include "targetver.h"
 
+#pragma warning(disable: 4995)
+#pragma warning(disable: 4996)
+
+
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
 #include <windows.h>
+
 
 // C RunTime Header Files
 #include <stdlib.h>
@@ -22,6 +27,8 @@
 #include <atlstr.h>
 #include <atlbase.h>
 
+#include <DbgHelp.h>
+#pragma comment(lib, "DbgHelp.lib")
 
 #include "..\WTL80\include\atlapp.h"
 #include "..\WTL80\include\atlctrls.h"

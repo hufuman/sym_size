@@ -16,7 +16,6 @@
 class CMainDlg;
 struct stSortInfo
 {
-    BOOL bShowFunc;
     BOOL bAsc;
     int  nSortIndex;
     CMainDlg* pDlg;
@@ -30,6 +29,7 @@ public:
 
 	CMainDlg()
 	{
+        m_nTotalSize = 0;
 	}
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg)
@@ -45,20 +45,18 @@ public:
 		MESSAGE_HANDLER(WM_SYSCOMMAND, OnSysCommand)
         MESSAGE_HANDLER(WM_DROPFILES, OnDropFiles)
 
-        MESSAGE_HANDLER(g_NotifyPEParserProgress, OnNotifyPEParserProgress)
         MESSAGE_HANDLER(g_NotifyPEParserFinish, OnNotifyPEParserFinish)
 
         NOTIFY_HANDLER(IDC_LIST_SYMBOLE, LVN_GETDISPINFO, OnLvnGetDispInfo)
 
-        COMMAND_ID_HANDLER(IDC_RADIO_FUNCTION, OnFilter)
-        COMMAND_ID_HANDLER(IDC_RADIO_UDT, OnFilter)
         COMMAND_ID_HANDLER(IDC_BTN_FILTER, OnFilter)
 
         NOTIFY_HANDLER(IDC_LIST_SYMBOLE, NM_RCLICK, OnItemRightClicked)
+        NOTIFY_HANDLER(IDC_LIST_SYMBOLE, LVN_ITEMCHANGED, OnItemChanged)
+        NOTIFY_HANDLER(IDC_LIST_SYMBOLE, LVN_ODSTATECHANGED, OnOdStateChanged)
 
         NOTIFY_HANDLER(0, HDN_ITEMCLICK, OnListHeaderClicked)
 
-        COMMAND_ID_HANDLER(ID_ITEMCONTEXTMENU_COUNTSIZE, OnItemCountSize)
         COMMAND_ID_HANDLER(ID_ITEMCONTEXTMENU_COPYNAME, OnItemCopyName)
         COMMAND_ID_HANDLER(ID_ITEMCONTEXTMENU_COPYLINE, OnItemCopyLine)
 
@@ -106,11 +104,11 @@ public:
 
         m_Progress.Attach(GetDlgItem(IDC_PROGRESS_PARSING));
         m_LabelProgress.Attach(GetDlgItem(IDC_LABEL_PROGRESS));
-        m_RadioFunc.Attach(GetDlgItem(IDC_RADIO_FUNCTION));
-        m_RadioUDT.Attach(GetDlgItem(IDC_RADIO_UDT));
 
         m_List.InsertColumn(0, _T("Name"), LVCFMT_LEFT, 120);
-        m_List.InsertColumn(1, _T("Size"), LVCFMT_LEFT, 360);
+        m_List.InsertColumn(1, _T("Size"), LVCFMT_LEFT, 120);
+        m_List.InsertColumn(2, _T("Module"), LVCFMT_LEFT, 120);
+        m_List.InsertColumn(3, _T("Obj"), LVCFMT_LEFT, 120);
         m_List.SetExtendedListViewStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
 
         m_Progress.SetRange(0, 100);
@@ -136,77 +134,32 @@ public:
         return 0;
     }
 
-    LRESULT OnItemCountSize(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& bHandled)
-    {
-        bHandled = TRUE;
-
-        BOOL bShowFunc = (m_RadioFunc.GetCheck() == BST_CHECKED);
-
-        const UDTInfoList& udtList = m_PEParser.GetUDTInfo();
-        const FuncInfoList& funcList = m_PEParser.GetFuncInfo();
-
-        LVITEMINDEX index = {-1, 0};
-        ULONGLONG uTotalSize = 0;
-        while(m_List.GetNextItemIndex(&index, LVNI_ALL | LVNI_SELECTED))
-        {
-            if(bShowFunc)
-            {
-                const CFunctionInfo& func = funcList.GetAt(m_ItemIndex[index.iItem]);
-                uTotalSize += func.uLength;
-            }
-            else
-            {
-                const CUDTInfo& udt = udtList.GetAt(m_ItemIndex[index.iItem]);
-                uTotalSize += udt.uLength;
-            }
-        }
-
-        CString strMsg;
-        strMsg.Format(_T("TotalSize: %I64u"), uTotalSize);
-        MessageBox(strMsg);
-
-        return 0;
-    }
-
     LRESULT OnItemCopyLine(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& bHandled)
     {
         bHandled = TRUE;
 
-        BOOL bShowFunc = (m_RadioFunc.GetCheck() == BST_CHECKED);
-
-        const UDTInfoList& udtList = m_PEParser.GetUDTInfo();
         const FuncInfoList& funcList = m_PEParser.GetFuncInfo();
 
         CString strMsg, strTemp;
         LVITEMINDEX index = {-1, 0};
         while(m_List.GetNextItemIndex(&index, LVNI_ALL | LVNI_SELECTED))
         {
-            if(bShowFunc)
-            {
-                const CFunctionInfo& func = funcList.GetAt(m_ItemIndex[index.iItem]);
-                strTemp.Format(_T("%I64u"), func.uLength);
-                strMsg += func.bstrName;
-                strMsg += _T(", ");
-                strMsg += strTemp;
-                strMsg += _T("\r\n");
-            }
-            else
-            {
-                const CUDTInfo& udt = udtList.GetAt(m_ItemIndex[index.iItem]);
-                strTemp.Format(_T("%I64u"), udt.uLength);
-                strMsg += udt.bstrName;
-                strMsg += _T(", ");
-                strMsg += strTemp;
-                strMsg += _T("\r\n");
-            }
+            const stFuncData& func = funcList[m_ItemIndex[index.iItem]];
+            strTemp.Format(_T("%I64u"), func.nFuncSize);
+            strMsg += func.strFuncName;
+            strMsg += _T(", ");
+            strMsg += strTemp;
+            strMsg += _T(", ");
+            strMsg += func.strModuleName;
+            strMsg += _T(", ");
+            strMsg += func.strObjName;
+            strMsg += _T("\r\n");
         }
 
         if(!strMsg.IsEmpty())
             strMsg = strMsg.Mid(0, strMsg.GetLength() - 2);
 
         Util::SaveStringToClipboard(m_hWnd, strMsg);
-
-        MessageBox(_T("Lines has been copied to clipboard."));
 
         return 0;
     }
@@ -215,35 +168,21 @@ public:
     {
         bHandled = TRUE;
 
-        BOOL bShowFunc = (m_RadioFunc.GetCheck() == BST_CHECKED);
-
-        const UDTInfoList& udtList = m_PEParser.GetUDTInfo();
         const FuncInfoList& funcList = m_PEParser.GetFuncInfo();
 
         CString strMsg;
         LVITEMINDEX index = {-1, 0};
         while(m_List.GetNextItemIndex(&index, LVNI_ALL | LVNI_SELECTED))
         {
-            if(bShowFunc)
-            {
-                const CFunctionInfo& func = funcList.GetAt(m_ItemIndex[index.iItem]);
-                strMsg += func.bstrName;
-                strMsg += _T(", ");
-            }
-            else
-            {
-                const CUDTInfo& udt = udtList.GetAt(m_ItemIndex[index.iItem]);
-                strMsg += udt.bstrName;
-                strMsg += _T(", ");
-            }
+            const stFuncData& func = funcList[m_ItemIndex[index.iItem]];
+            strMsg += func.strFuncName;
+            strMsg += _T(", ");
         }
 
         if(!strMsg.IsEmpty())
             strMsg = strMsg.Mid(0, strMsg.GetLength() - 2);
 
         Util::SaveStringToClipboard(m_hWnd, strMsg);
-
-        MessageBox(_T("Names has been copied to clipboard."));
 
         return 0;
     }
@@ -301,7 +240,7 @@ public:
             DWORD dwAttr = ::GetFileAttributes(szPath);
             if(dwAttr == INVALID_FILE_ATTRIBUTES
                 || ((dwAttr & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY)
-                || !::PathMatchSpec(szPath, _T("*.pdb")))
+                || !::PathMatchSpec(szPath, _T("*.map")))
             {
                 MsgBox(IDS_ERR_UNKNOWN);
                 break;
@@ -310,7 +249,7 @@ public:
             SetDlgItemText(IDC_LABEL_FILE_PATH, szPath);
             SetDlgItemText(IDC_EDIT_FILTER, _T("*"));
 
-            ParsePDB(szPath);
+            ParseMap(szPath);
 
             break;
         }
@@ -332,9 +271,6 @@ public:
 
         m_WndLayout.AddControlById(IDC_LABEL_PROGRESS, Layout_Top | Layout_HCenter);
         m_WndLayout.AddControlById(IDC_PROGRESS_PARSING, Layout_Top | Layout_HCenter);
-
-        m_WndLayout.AddControlById(IDC_RADIO_FUNCTION, Layout_Top | Layout_Left);
-        m_WndLayout.AddControlById(IDC_RADIO_UDT, Layout_Top | Layout_Left);
     }
 
     int MsgBox(UINT nResId)
@@ -344,7 +280,7 @@ public:
         return ::MessageBox(m_hWnd, strMsg, _T("sym_size"), MB_OK | MB_ICONERROR);
     }
 
-    void ParsePDB(LPCTSTR szPDBPath)
+    void ParseMap(LPCTSTR szMapPath)
     {
         m_List.ShowWindow(SW_HIDE);
 
@@ -354,20 +290,7 @@ public:
         m_Progress.ShowWindow(SW_SHOW);
         m_LabelProgress.ShowWindow(SW_SHOW);
 
-        m_PEParser.Load(m_hWnd, szPDBPath);
-    }
-
-    LRESULT OnNotifyPEParserProgress(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
-    {
-        bHandled = TRUE;
-
-        m_Progress.SetPos(wParam);
-
-        CString strText;
-        strText.Format(_T("Progress: %d%%"), wParam);
-        m_LabelProgress.SetWindowText(strText);
-
-        return 0;
+        m_PEParser.Load(m_hWnd, szMapPath);
     }
 
     LRESULT OnNotifyPEParserFinish(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
@@ -392,8 +315,6 @@ public:
     void ShowResultUI(BOOL bShowResult)
     {
         m_List.ShowWindow(bShowResult ? SW_SHOW : SW_HIDE);
-        m_RadioFunc.ShowWindow(bShowResult ? SW_SHOW : SW_HIDE);
-        m_RadioUDT.ShowWindow(bShowResult ? SW_SHOW : SW_HIDE);
 
         m_Progress.ShowWindow(bShowResult ? SW_HIDE : SW_SHOW);
         m_LabelProgress.ShowWindow(bShowResult ? SW_HIDE : SW_SHOW);
@@ -403,8 +324,6 @@ public:
     void ShowResult()
     {
         ShowResultUI(TRUE);
-
-        m_RadioFunc.SetCheck(BST_CHECKED);
 
         FilterResult();
     }
@@ -419,34 +338,24 @@ public:
 
         CString strFilter;
         strFilter.Format(_T("*%s*"), szFilter);
-        if(m_RadioFunc.GetCheck() == BST_CHECKED)
+
+        int nTotalSize = 0;
+        const FuncInfoList& list = m_PEParser.GetFuncInfo();
+        DWORD dwLength = list.GetSize();
+        for(DWORD i=0; i<dwLength; ++ i)
         {
-            const FuncInfoList& list = m_PEParser.GetFuncInfo();
-            DWORD dwLength = list.GetLength();
-            for(DWORD i=0; i<dwLength; ++ i)
+            const stFuncData& func = list[i];
+            if(::PathMatchSpec(func.strFuncName, strFilter))
             {
-                const CFunctionInfo& func = list.GetAt(i);
-                if(::PathMatchSpec(func.bstrName, strFilter))
-                {
-                    m_ItemIndex.Add(i);
-                }
-            }
-        }
-        else if(m_RadioUDT.GetCheck() == BST_CHECKED)
-        {
-            const UDTInfoList& list = m_PEParser.GetUDTInfo();
-            DWORD dwLength = list.GetLength();
-            for(DWORD i=0; i<dwLength; ++ i)
-            {
-                const CUDTInfo& udt = list.GetAt(i);
-                if(::PathMatchSpec(udt.bstrName, strFilter))
-                {
-                    m_ItemIndex.Add(i);
-                }
+                nTotalSize += func.nFuncSize;
+                m_ItemIndex.Add(i);
             }
         }
 
         SortListItems();
+
+        m_nTotalSize = nTotalSize;
+        UpdateInfoLabel();
     }
 
     void SortListItems()
@@ -455,7 +364,6 @@ public:
         int nSortIndex = -1;
         m_List.GetSortParam(bAsc, nSortIndex);
 
-        g_SortInfo.bShowFunc = (m_RadioFunc.GetCheck() == BST_CHECKED);
         g_SortInfo.bAsc = bAsc;
         g_SortInfo.nSortIndex = nSortIndex;
         g_SortInfo.pDlg = this;
@@ -463,6 +371,26 @@ public:
         qsort(m_ItemIndex.GetData(), m_ItemIndex.GetSize(), sizeof(DWORD), &CMainDlg::SortHlpFunc);
 
         m_List.SetItemCount(m_ItemIndex.GetSize());
+    }
+
+    LRESULT OnOdStateChanged(int nId, LPNMHDR pNMHDr, BOOL& bHandled)
+    {
+        NMLVODSTATECHANGE* pItems = (NMLVODSTATECHANGE*)pNMHDr;
+        if((pItems->uNewState & LVIS_SELECTED) ^ (pItems->uOldState & LVIS_SELECTED))
+        {
+            UpdateInfoLabel();
+        }
+        return 0;
+    }
+
+    LRESULT OnItemChanged(int nId, LPNMHDR pNMHDr, BOOL& bHandled)
+    {
+        NMLISTVIEW* pItem = (NMLISTVIEW*)pNMHDr;
+        if((pItem->uNewState & LVIS_SELECTED) ^ (pItem->uOldState & LVIS_SELECTED))
+        {
+            UpdateInfoLabel();
+        }
+        return 0;
     }
 
     LRESULT OnItemRightClicked(int nId, LPNMHDR pNMHDr, BOOL& bHandled)
@@ -489,32 +417,25 @@ public:
     {
         NMLVDISPINFO* pInfo = reinterpret_cast<NMLVDISPINFO*>(pNMHDr);
 
-        if(m_RadioFunc.GetCheck() == BST_CHECKED)
+        const FuncInfoList& list = m_PEParser.GetFuncInfo();
+        const stFuncData& func = list[m_ItemIndex[pInfo->item.iItem]];
+        if(pInfo->item.iSubItem == 0)
         {
-            const FuncInfoList& list = m_PEParser.GetFuncInfo();
-            const CFunctionInfo& func = list.GetAt(m_ItemIndex[pInfo->item.iItem]);
-            if(pInfo->item.iSubItem == 0)
-            {
-                pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(func.bstrName));
-            }
-            else
-            {
-                pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(func.strSize));
-            }
+            pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(func.strFuncName));
         }
-        else if(m_RadioUDT.GetCheck() == BST_CHECKED)
+        else if(pInfo->item.iSubItem == 1)
         {
-            const UDTInfoList& list = m_PEParser.GetUDTInfo();
-            const CUDTInfo& udt = list.GetAt(m_ItemIndex[pInfo->item.iItem]);
-            if(pInfo->item.iSubItem == 0)
-            {
-                pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(udt.bstrName));
-            }
-            else
-            {
-                pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(udt.strSize));
-            }
+            pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(func.strFuncSize));
         }
+        else if(pInfo->item.iSubItem == 2)
+        {
+            pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(func.strModuleName));
+        }
+        else if(pInfo->item.iSubItem == 3)
+        {
+            pInfo->item.pszText = const_cast<LPTSTR>(static_cast<LPCTSTR>(func.strObjName));
+        }
+
         pInfo->item.mask |= LVIF_PARAM;
         pInfo->item.lParam = m_ItemIndex[pInfo->item.iItem];
 
@@ -528,58 +449,64 @@ public:
         DWORD dwIndex1 = *reinterpret_cast<DWORD*>(reinterpret_cast<DWORD>(arg1));
         DWORD dwIndex2 = *reinterpret_cast<DWORD*>(reinterpret_cast<DWORD>(arg2));
 
-        if(g_SortInfo.bShowFunc)
+        const FuncInfoList& list = g_SortInfo.pDlg->m_PEParser.GetFuncInfo();
+        const stFuncData& func1 = list[dwIndex1];
+        const stFuncData& func2 = list[dwIndex2];
+        if(g_SortInfo.nSortIndex == 0)
         {
-            const FuncInfoList& list = g_SortInfo.pDlg->m_PEParser.GetFuncInfo();
-            const CFunctionInfo& func1 = list.GetAt(dwIndex1);
-            const CFunctionInfo& func2 = list.GetAt(dwIndex2);
-            if(g_SortInfo.nSortIndex == 1)
-            {
-                if(func1.uLength < func2.uLength)
-                    nResult = -1;
-                else if(func1.uLength == func2.uLength)
-                    nResult = 0;
-                else
-                    nResult = 1;
-            }
-            else
-            {
-                nResult = _tcsicmp(func1.bstrName, func2.bstrName);
-            }
+            nResult = _tcsicmp(func1.strFuncName, func2.strFuncName);
         }
-        else
+        else if(g_SortInfo.nSortIndex == 1)
         {
-            const UDTInfoList& list = g_SortInfo.pDlg->m_PEParser.GetUDTInfo();
-            const CUDTInfo& udt1 = list.GetAt(dwIndex1);
-            const CUDTInfo& udt2 = list.GetAt(dwIndex2);
-            if(g_SortInfo.nSortIndex == 1)
-            {
-                if(udt1.uLength < udt2.uLength)
-                    nResult = -1;
-                else if(udt1.uLength == udt2.uLength)
-                    nResult = 0;
-                else
-                    nResult = 1;
-            }
+            if(func1.nFuncSize < func2.nFuncSize)
+                nResult = -1;
+            else if(func1.nFuncSize == func2.nFuncSize)
+                nResult = 0;
             else
-            {
-                nResult = _tcsicmp(udt1.bstrName, udt2.bstrName);
-            }
+                nResult = 1;
+        }
+        else if(g_SortInfo.nSortIndex == 2)
+        {
+            nResult = _tcsicmp(func1.strModuleName, func2.strModuleName);
+        }
+        else if(g_SortInfo.nSortIndex == 3)
+        {
+            nResult = _tcsicmp(func1.strObjName, func2.strObjName);
         }
         if(!g_SortInfo.bAsc)
             nResult = -nResult;
         return nResult;
     }
 
+    void UpdateInfoLabel()
+    {
+        int nSelectionSize = 0;
+        const FuncInfoList& funcList = m_PEParser.GetFuncInfo();
+        LVITEMINDEX index = {-1, 0};
+        while(m_List.GetNextItemIndex(&index, LVNI_SELECTED))
+        {
+            const stFuncData& func = funcList[m_ItemIndex[index.iItem]];
+            nSelectionSize += func.nFuncSize;
+        }
+
+        CString strInfo;
+        if(m_nTotalSize < 10 * 1024)
+            strInfo.Format(_T("TotalSize: %d B, Size of selection: %d B"), m_nTotalSize, nSelectionSize);
+        else if(m_nTotalSize < 100 * 1024 * 1024)
+            strInfo.Format(_T("TotalSize: %d KB, Size of selection: %d KB"), m_nTotalSize / 1024, nSelectionSize / 1024);
+        else if(m_nTotalSize < 100 * 1024 * 1024 * 1024)
+            strInfo.Format(_T("TotalSize: %d MB, Size of selection: %d MB"), m_nTotalSize / 1024 / 1024, nSelectionSize / 1024 / 1024);
+        SetDlgItemText(IDC_LABEL_INFO, strInfo);
+    }
+
 private:
     CWndLayout      m_WndLayout;
     CPEParser       m_PEParser;
 
+    int             m_nTotalSize;
+
     CProgressBarCtrl m_Progress;
     CStatic         m_LabelProgress;
-
-    CButton         m_RadioFunc;
-    CButton         m_RadioUDT;
 
     CSortListCtrl   m_List;
 

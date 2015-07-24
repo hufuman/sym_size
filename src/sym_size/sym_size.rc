@@ -43,9 +43,8 @@ BEGIN
     CONTROL         "",IDC_PROGRESS_PARSING,"msctls_progress32",PBS_SMOOTH,69,128,256,14
     LTEXT           "Progress: 100%",IDC_LABEL_PROGRESS,170,110,53,8
     CONTROL         "",IDC_LIST_SYMBOLE,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | LVS_OWNERDATA | WS_BORDER | WS_TABSTOP,6,48,378,204
-    CONTROL         "&Functions",IDC_RADIO_FUNCTION,"Button",BS_AUTORADIOBUTTON,12,36,47,10
-    CONTROL         "&UDT",IDC_RADIO_UDT,"Button",BS_AUTORADIOBUTTON,66,36,29,10
     PUSHBUTTON      "Fil&ter",IDC_BTN_FILTER,348,16,32,18
+    LTEXT           "",IDC_LABEL_INFO,7,34,377,8
 END
 
 
@@ -84,7 +83,6 @@ IDR_MENU_ITEM MENU
 BEGIN
     POPUP "ItemContextMenu"
     BEGIN
-        MENUITEM "Count &Size",                 ID_ITEMCONTEXTMENU_COUNTSIZE
         MENUITEM "Copy &Name",                  ID_ITEMCONTEXTMENU_COPYNAME
         MENUITEM "Copy &Line(s)",               ID_ITEMCONTEXTMENU_COPYLINE
     END
@@ -103,7 +101,7 @@ BEGIN
                             "Can't view multiple files' symbols at the same time."
     IDS_ERR_NO_FILE_DROPPED "No files dropped."
     IDS_ERR_UNKNOWN         "Unknown Error."
-    IDS_ERR_PARSE           "Pdb Parse Error."
+    IDS_ERR_PARSE           "Map Parse Error."
 END
 
 #endif    // Chinese (P.R.C.) resources
