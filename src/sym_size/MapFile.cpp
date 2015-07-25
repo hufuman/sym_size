@@ -91,7 +91,7 @@ bool CMapFile::LoadFile(LPCTSTR szFilePath, FuncInfoList& listFuncDatas)
             if(listFuncDatas.GetSize() > 0)
             {
                 stFuncData& lastFuncData = listFuncDatas[listFuncDatas.GetSize() - 1];
-                if(lastFuncData.nSectionNo == data.nSectionNo)
+                if(lastFuncData.nSectionNo == data.nSectionNo && lastFuncData.nFuncSize <= 0)
                 {
                     lastFuncData.nFuncSize = data.pFuncAddr - lastFuncData.pFuncAddr;
                     lastFuncData.strFuncSize.Format(_T("%d"), lastFuncData.nFuncSize);

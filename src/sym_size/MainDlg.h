@@ -489,13 +489,14 @@ public:
             nSelectionSize += func.nFuncSize;
         }
 
+        int nSelectionCount = m_List.GetItemCount();
         CString strInfo;
         if(m_nTotalSize < 10 * 1024)
-            strInfo.Format(_T("TotalSize: %d B, Size of selection: %d B"), m_nTotalSize, nSelectionSize);
+            strInfo.Format(_T("TotalSize: %d B, Size of selection: %d B, TotalCount: %d"), m_nTotalSize, nSelectionSize, nSelectionCount);
         else if(m_nTotalSize < 100 * 1024 * 1024)
-            strInfo.Format(_T("TotalSize: %d KB, Size of selection: %d KB"), m_nTotalSize / 1024, nSelectionSize / 1024);
+            strInfo.Format(_T("TotalSize: %d KB, Size of selection: %d KB, TotalCount: %d"), m_nTotalSize / 1024, nSelectionSize / 1024, nSelectionCount);
         else if(m_nTotalSize < 100 * 1024 * 1024 * 1024)
-            strInfo.Format(_T("TotalSize: %d MB, Size of selection: %d MB"), m_nTotalSize / 1024 / 1024, nSelectionSize / 1024 / 1024);
+            strInfo.Format(_T("TotalSize: %d MB, Size of selection: %d MB, TotalCount: %d"), m_nTotalSize / 1024 / 1024, nSelectionSize / 1024 / 1024, nSelectionCount);
         SetDlgItemText(IDC_LABEL_INFO, strInfo);
     }
 
