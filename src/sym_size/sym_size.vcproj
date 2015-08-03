@@ -226,10 +226,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\SymDef.h"
-				>
-			</File>
-			<File
 				RelativePath=".\targetver.h"
 				>
 			</File>
@@ -297,6 +293,10 @@
 			</File>
 			<File
 				RelativePath=".\PEParser.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SymDef.h"
 				>
 			</File>
 		</Filter>

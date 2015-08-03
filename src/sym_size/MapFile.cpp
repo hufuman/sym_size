@@ -47,6 +47,7 @@ bool CMapFile::LoadFile(LPCTSTR szFilePath, FuncInfoList& listFuncDatas)
             stFuncData data;
             data.nFuncSize = 0;
             data.strFuncSize = "0";
+            data.dwAttr = FuncAttrFlat;
 
             if(strstr(pLine, "entry point at") != NULL)
             {
@@ -78,7 +79,19 @@ bool CMapFile::LoadFile(LPCTSTR szFilePath, FuncInfoList& listFuncDatas)
 #undef UnDecorateSymbolName
 #endif // UnDecorateSymbolName
             if(UnDecorateSymbolName(pLine, buffer, _countof(buffer), UNDNAME_COMPLETE))
+            {
                 data.strFuncName = buffer;
+                if(data.strFuncName.Replace(_T("public: "), _T("")) > 0)
+                    data.dwAttr |= FuncAttrPublic;
+                else if(data.strFuncName.Replace(_T("private: "), _T("")) > 0)
+                    data.dwAttr |= FuncAttrPrivate;
+                else if(data.strFuncName.Replace(_T("protected: "), _T("")) > 0)
+                    data.dwAttr |= FuncAttrProtected;
+                if(data.strFuncName.Replace(_T("virtual "), _T("")) > 0)
+                    data.dwAttr |= FuncAttrVirtual;
+                if(data.strFuncName.Replace(_T("__thiscall "), _T("")) > 0)
+                    data.dwAttr |= FuncAttrThisCall;
+            }
 
             // RVA
             pLine = strtok(NULL, " ");
