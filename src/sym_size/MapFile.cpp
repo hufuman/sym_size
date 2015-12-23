@@ -47,7 +47,6 @@ bool CMapFile::LoadFile(LPCTSTR szFilePath, FuncInfoList& listFuncDatas)
             stFuncData data;
             data.nFuncSize = 0;
             data.strFuncSize = "0";
-            data.dwAttr = FuncAttrFlat;
 
             if(strstr(pLine, "entry point at") != NULL)
             {
@@ -78,19 +77,10 @@ bool CMapFile::LoadFile(LPCTSTR szFilePath, FuncInfoList& listFuncDatas)
 #ifdef UnDecorateSymbolName
 #undef UnDecorateSymbolName
 #endif // UnDecorateSymbolName
-            if(UnDecorateSymbolName(pLine, buffer, _countof(buffer), UNDNAME_COMPLETE))
+            if(UnDecorateSymbolName(pLine, buffer, _countof(buffer), 
+                UNDNAME_NO_LEADING_UNDERSCORES | UNDNAME_NO_MS_KEYWORDS | UNDNAME_NO_FUNCTION_RETURNS | UNDNAME_NO_ALLOCATION_MODEL | UNDNAME_NO_ALLOCATION_LANGUAGE | UNDNAME_NO_THISTYPE | UNDNAME_NO_ACCESS_SPECIFIERS | UNDNAME_NO_THROW_SIGNATURES | UNDNAME_NO_MEMBER_TYPE | UNDNAME_NO_RETURN_UDT_MODEL | UNDNAME_32_BIT_DECODE | UNDNAME_NAME_ONLY))
             {
                 data.strFuncName = buffer;
-                if(data.strFuncName.Replace(_T("public: "), _T("")) > 0)
-                    data.dwAttr |= FuncAttrPublic;
-                else if(data.strFuncName.Replace(_T("private: "), _T("")) > 0)
-                    data.dwAttr |= FuncAttrPrivate;
-                else if(data.strFuncName.Replace(_T("protected: "), _T("")) > 0)
-                    data.dwAttr |= FuncAttrProtected;
-                if(data.strFuncName.Replace(_T("virtual "), _T("")) > 0)
-                    data.dwAttr |= FuncAttrVirtual;
-                if(data.strFuncName.Replace(_T("__thiscall "), _T("")) > 0)
-                    data.dwAttr |= FuncAttrThisCall;
             }
 
             // RVA
@@ -111,18 +101,14 @@ bool CMapFile::LoadFile(LPCTSTR szFilePath, FuncInfoList& listFuncDatas)
                 }
             }
 
-            // f i
-            pLine = strtok(NULL, " ");
-            LPSTR pStart = pLine;
-            while((pLine[0] != '\0' && pLine[1] == '\0') || (pLine[0] != '\0' && pLine[1] == ' '))
+            // find last token
+            LPSTR lastToken = pLine;
+            while(pLine != NULL)
             {
-                pLine += 2;
+                lastToken = pLine;
+                pLine = strtok(NULL, " ");
             }
-            if(pLine == NULL)
-                break;
-
-            if(pLine[0] == '<')
-                continue;
+            pLine = lastToken;
 
             // Module:Obj
             LPCSTR pos = strchr(pLine, ':');
@@ -151,7 +137,8 @@ LPSTR CMapFile::NextLine(LPSTR pCurPos, LPSTR pFileEnd)
     LPSTR result = strchr(pCurPos, '\0');
     if(result == NULL)
         return NULL;
-    while(*result == 0)
-        ++ result;
+    for(;(result[0] == _T('\n') || result[0] == _T('\0')) && result < pFileEnd; ++ result)
+    {
+    }
     return result;
 }
