@@ -26,7 +26,6 @@
 #define IDC_LIST_SYMBOLE                1014
 #define IDC_PROGRESS_PARSING            1015
 #define IDC_LABEL_PROGRESS              1016
-#define IDC_BTN_FILTER                  1019
 #define ID_ITEMCONTEXTMENU_COPYNAME     32773
 #define ID_ITEMCONTEXTMENU_COPYLINE     32774
 #define IDC_STATIC                      -1

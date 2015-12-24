@@ -49,7 +49,7 @@ public:
 
         NOTIFY_HANDLER(IDC_LIST_SYMBOLE, LVN_GETDISPINFO, OnLvnGetDispInfo)
 
-        COMMAND_ID_HANDLER(IDC_BTN_FILTER, OnFilter)
+        COMMAND_ID_HANDLER(IDOK, OnFilter)
 
         NOTIFY_HANDLER(IDC_LIST_SYMBOLE, NM_RCLICK, OnItemRightClicked)
         NOTIFY_HANDLER(IDC_LIST_SYMBOLE, LVN_ITEMCHANGED, OnItemChanged)
@@ -267,7 +267,7 @@ public:
         m_WndLayout.AddControlById(IDC_LIST_SYMBOLE, Layout_VFill | Layout_HFill);
         m_WndLayout.AddControlById(IDC_LABEL_FILE_PATH, Layout_Top | Layout_HFill);
         m_WndLayout.AddControlById(IDC_EDIT_FILTER, Layout_Top | Layout_HFill);
-        m_WndLayout.AddControlById(IDC_BTN_FILTER, Layout_Top | Layout_Right);
+        m_WndLayout.AddControlById(IDOK, Layout_Top | Layout_Right);
 
         m_WndLayout.AddControlById(IDC_LABEL_PROGRESS, Layout_Top | Layout_HCenter);
         m_WndLayout.AddControlById(IDC_PROGRESS_PARSING, Layout_Top | Layout_HCenter);

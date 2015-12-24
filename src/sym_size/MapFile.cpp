@@ -72,6 +72,8 @@ bool CMapFile::LoadFile(LPCTSTR szFilePath, FuncInfoList& listFuncDatas)
                 break;
 
             data.strFuncName = pLine;
+            if(data.strFuncName == _T("__TI2PAD"))
+                printf("");
 
             // DecodedFuncName
 #ifdef UnDecorateSymbolName
